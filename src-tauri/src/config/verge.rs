@@ -134,6 +134,10 @@ pub struct IVerge {
 
     pub default_latency_timeout: Option<i16>,
 
+    /// Proxy group retested and re-selected by the `speedtest_and_select` hotkey.
+    #[specta(type = Option<std::string::String>)]
+    pub auto_select_group: Option<String>,
+
     pub enable_auto_delay_detection: Option<bool>,
 
     /// 自动检测当前节点延迟的间隔（分钟）
@@ -403,6 +407,7 @@ impl IVerge {
             use_default_bypass: Some(true),
             proxy_guard_duration: Some(30),
             auto_close_connection: Some(true),
+            auto_select_group: Some("Proxies".into()),
             auto_check_update: Some(true),
             enable_builtin_enhanced: Some(true),
             auto_log_clean: Some(2), // 1: 1天, 2: 7天, 3: 30天, 4: 90天
@@ -502,6 +507,7 @@ impl IVerge {
         patch!(auto_check_update);
         patch!(default_latency_test);
         patch!(default_latency_timeout);
+        patch!(auto_select_group);
         patch!(enable_auto_delay_detection);
         patch!(auto_delay_detection_interval_minutes);
         patch!(enable_builtin_enhanced);

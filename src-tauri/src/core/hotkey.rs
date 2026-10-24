@@ -30,6 +30,7 @@ pub enum HotkeyFunction {
     ToggleTunMode,
     EntryLightweightMode,
     ReactivateProfiles,
+    SpeedtestAndSelect,
     Quit,
     #[cfg(target_os = "macos")]
     Hide,
@@ -46,6 +47,7 @@ impl fmt::Display for HotkeyFunction {
             Self::ToggleTunMode => "toggle_tun_mode",
             Self::EntryLightweightMode => "entry_lightweight_mode",
             Self::ReactivateProfiles => "reactivate_profiles",
+            Self::SpeedtestAndSelect => "speedtest_and_select",
             Self::Quit => "quit",
             #[cfg(target_os = "macos")]
             Self::Hide => "hide",
@@ -67,6 +69,7 @@ impl FromStr for HotkeyFunction {
             "toggle_tun_mode" => Ok(Self::ToggleTunMode),
             "entry_lightweight_mode" => Ok(Self::EntryLightweightMode),
             "reactivate_profiles" => Ok(Self::ReactivateProfiles),
+            "speedtest_and_select" => Ok(Self::SpeedtestAndSelect),
             "quit" => Ok(Self::Quit),
             #[cfg(target_os = "macos")]
             "hide" => Ok(Self::Hide),
@@ -189,6 +192,11 @@ impl Hotkey {
                         );
                         handle::Handle::notice(NoticeStatus::ReactivateProfilesError, err.to_string());
                     }
+                });
+            }
+            HotkeyFunction::SpeedtestAndSelect => {
+                AsyncHandler::spawn(async move || {
+                    feat::speedtest_and_select().await;
                 });
             }
             HotkeyFunction::Quit => {

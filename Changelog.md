@@ -17,6 +17,7 @@
 <details>
 <summary><strong> ✨ 新增功能 </strong></summary>
 
+- 新增「测速并切换到最低延迟节点」全局热键，对代理组测速后自动切换到延迟最低的节点
 
 </details>
 

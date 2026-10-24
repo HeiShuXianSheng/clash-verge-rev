@@ -640,7 +640,8 @@
         "toggleTunMode": "開啟/關閉 虛擬網路介面卡模式",
         "entryLightweightMode": "進入輕量模式",
         "direct": "直連模式",
-        "reactivateProfiles": "重新啟用訂閱"
+        "reactivateProfiles": "重新啟用訂閱",
+        "speedtestAndSelect": "測速並切換到最低延遲節點"
       }
     },
     "networkInterface": {

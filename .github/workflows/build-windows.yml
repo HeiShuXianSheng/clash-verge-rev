@@ -1,0 +1,102 @@
+name: Build Windows x64
+
+# Fork-local build: produces an unsigned x64 installer without touching releases.
+# The upstream Auto Build workflow publishes multi-platform releases and needs the
+# TAURI_PRIVATE_KEY / TAURI_KEY_PASSWORD secrets; this workflow needs no secrets.
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - dev
+    paths-ignore:
+      - '**.md'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: build-windows-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  CARGO_INCREMENTAL: 0
+  RUST_BACKTRACE: short
+  HUSKY: 0
+
+jobs:
+  build:
+    name: Windows x64 installer
+    runs-on: windows-latest
+    timeout-minutes: 90
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: '1.99.1'
+          targets: x86_64-pc-windows-msvc
+
+      - name: Rust cache
+        uses: Swatinem/rust-cache@v2
+        with:
+          prefix-key: 'v1-rust'
+          key: 'rust-shared-stable-windows-latest-x86_64-pc-windows-msvc'
+          workspaces: |
+            . -> target
+          cache-all-crates: true
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v6
+        with:
+          run_install: false
+
+      - name: Install Node
+        uses: actions/setup-node@v7
+        with:
+          node-version: '24.22.1'
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Download core sidecars
+        run: pnpm run prebuild x86_64-pc-windows-msvc
+
+      - name: Build installer
+        env:
+          NODE_OPTIONS: '--max_old_space_size=4096'
+        run: |
+          # No signing secrets exist in the fork, so updater artifacts are disabled for this build.
+          '{"bundle":{"createUpdaterArtifacts":false}}' | Set-Content -Path tauri.ci.conf.json -Encoding utf8
+          pnpm tauri build --target x86_64-pc-windows-msvc --config tauri.ci.conf.json
+
+      - name: Read version
+        id: version
+        shell: pwsh
+        run: |
+          $version = (Get-Content package.json -Raw | ConvertFrom-Json).version
+          "version=$version" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+
+      - name: Upload installer
+        uses: actions/upload-artifact@v4
+        with:
+          name: clash-verge-windows-x64
+          path: target/x86_64-pc-windows-msvc/release/bundle/nsis/*-setup.exe
+          if-no-files-found: error
+
+      - name: Publish release
+        uses: softprops/action-gh-release@v3
+        with:
+          tag_name: windows-build
+          name: 'Clash Verge Rev ${{ steps.version.outputs.version }} (Windows x64)'
+          body: |
+            Automated Windows x64 build from `${{ github.ref_name }}` at ${{ github.sha }}.
+
+            - Version: ${{ steps.version.outputs.version }}
+            - Installer: unsigned, updater artifacts disabled (no signing secrets required)
+            - Built by: [Build Windows x64](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})
+          files: target/x86_64-pc-windows-msvc/release/bundle/nsis/*-setup.exe
+          prerelease: true
+          token: ${{ secrets.GITHUB_TOKEN }}

@@ -640,7 +640,8 @@
         "toggleTunMode": "Enable/Disable Tun Mode",
         "entryLightweightMode": "Entry Lightweight Mode",
         "direct": "Direct Mode",
-        "reactivateProfiles": "Reactivate Profiles"
+        "reactivateProfiles": "Reactivate Profiles",
+        "speedtestAndSelect": "Test latency and select the fastest node"
       }
     },
     "networkInterface": {

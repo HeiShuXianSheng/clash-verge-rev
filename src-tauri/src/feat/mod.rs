@@ -1,3 +1,4 @@
+mod auto_select;
 mod backup;
 mod clash;
 mod config;
@@ -13,6 +14,7 @@ mod tun;
 mod window;
 
 // Re-export all functions from modules
+pub use auto_select::*;
 pub use backup::*;
 pub use clash::*;
 pub use config::*;

@@ -640,7 +640,8 @@
         "toggleTunMode": "打开/关闭 TUN 模式",
         "entryLightweightMode": "进入轻量模式",
         "direct": "直连模式",
-        "reactivateProfiles": "重新激活订阅"
+        "reactivateProfiles": "重新激活订阅",
+        "speedtestAndSelect": "测速并切换到最低延迟节点"
       }
     },
     "networkInterface": {

@@ -1087,6 +1087,7 @@ export interface TranslationResources {
             openOrCloseDashboard: string
             reactivateProfiles: string
             rule: string
+            speedtestAndSelect: string
             toggleSystemProxy: string
             toggleTunMode: string
           }
