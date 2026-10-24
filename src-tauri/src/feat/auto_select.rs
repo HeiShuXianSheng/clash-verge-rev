@@ -45,11 +45,23 @@ pub async fn speedtest_and_select() {
     }
 
     let previous = group.now.clone();
-    let test_url = group.test_url.clone().unwrap_or_else(|| DEFAULT_TEST_URL.to_owned());
+    // Selector groups report an empty test_url, which mihomo treats as "test nothing".
+    let test_url = group
+        .test_url
+        .clone()
+        .filter(|url| !url.is_empty())
+        .unwrap_or_else(|| DEFAULT_TEST_URL.to_owned());
 
-    let Ok(delays) = mihomo.delay_group(&group_name, &test_url, TEST_TIMEOUT_MS).await else {
-        logging!(warn, Type::ProxyMode, "speedtest: delay test failed for {group_name}");
-        return;
+    let delays = match mihomo.delay_group(&group_name, &test_url, TEST_TIMEOUT_MS).await {
+        Ok(delays) => delays,
+        Err(err) => {
+            logging!(
+                warn,
+                Type::ProxyMode,
+                "speedtest: delay test failed for {group_name} using {test_url}: {err:#}"
+            );
+            return;
+        }
     };
 
     // Nested groups report their own delay entry; only leaf nodes may be selected.
