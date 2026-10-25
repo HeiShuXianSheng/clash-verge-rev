@@ -1,3 +1,5 @@
+use std::sync::atomic::{AtomicBool, Ordering};
+
 use clash_verge_logging::{Type, logging};
 
 use crate::{
@@ -14,11 +16,27 @@ const DEFAULT_GROUP: &str = "Proxies";
 const DEFAULT_TEST_URL: &str = "http://cp.cloudflare.com/generate_204";
 const TEST_TIMEOUT_MS: u32 = 5000;
 
+/// Concurrent runs would overlap their group delay tests and corrupt each other's results.
+static RUNNING: AtomicBool = AtomicBool::new(false);
+
 /// Tests every member of the target group and selects the reachable leaf with the lowest delay.
 ///
 /// `delay_group` drops the group's fixed selection, so a run without a reachable leaf restores the
 /// node selected before the test instead of leaving the group on the core's own choice.
 pub async fn speedtest_and_select() {
+    if RUNNING
+        .compare_exchange(false, true, Ordering::AcqRel, Ordering::Acquire)
+        .is_err()
+    {
+        logging!(debug, Type::ProxyMode, "speedtest: skipped, previous run in progress");
+        return;
+    }
+
+    select_fastest().await;
+    RUNNING.store(false, Ordering::Release);
+}
+
+async fn select_fastest() {
     let mihomo = handle::Handle::mihomo();
     let Ok(proxies) = mihomo.get_proxies().await else {
         logging!(warn, Type::ProxyMode, "speedtest: failed to load proxies");
@@ -52,6 +70,8 @@ pub async fn speedtest_and_select() {
         .filter(|url| !url.is_empty())
         .unwrap_or_else(|| DEFAULT_TEST_URL.to_owned());
 
+    logging!(info, Type::ProxyMode, "speedtest: testing {group_name} members");
+
     let delays = match mihomo.delay_group(&group_name, &test_url, TEST_TIMEOUT_MS).await {
         Ok(delays) => delays,
         Err(err) => {
@@ -67,7 +87,11 @@ pub async fn speedtest_and_select() {
     // Nested groups report their own delay entry; only leaf nodes may be selected.
     let best = delays
         .into_iter()
-        .filter(|(name, delay)| *delay > 0 && proxies.proxies.get(name).is_some_and(|proxy| proxy.all.is_none()))
+        .filter(|(name, delay)| {
+            *delay > 0
+                && !is_informational_node(name)
+                && proxies.proxies.get(name).is_some_and(|proxy| proxy.all.is_none())
+        })
         .min_by_key(|(_, delay)| *delay);
 
     let Some((node, delay)) = best else {
@@ -100,6 +124,23 @@ pub async fn speedtest_and_select() {
     }
 
     logging!(info, Type::ProxyMode, "speedtest: {group_name} -> {node} ({delay}ms)");
+}
+
+/// Subscriptions often expose traffic and expiry banners as proxy entries; the hotkey must not
+/// route traffic through one of them.
+fn is_informational_node(name: &str) -> bool {
+    const MARKERS: [&str; 8] = [
+        "traffic",
+        "expire",
+        "remaining",
+        "expiry",
+        "剩余",
+        "到期",
+        "套餐",
+        "官网",
+    ];
+    let name = name.to_ascii_lowercase();
+    MARKERS.into_iter().any(|marker| name.contains(marker))
 }
 
 async fn restore_selection(group_name: &str, previous: Option<&str>) {
