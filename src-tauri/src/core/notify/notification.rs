@@ -35,6 +35,13 @@ pub enum FrontendEvent<'a> {
         state: crate::core::runstate::RunStateView,
     },
     PendingFailuresChanged,
+    SpeedtestStarted {
+        group: String,
+        members: Vec<String>,
+    },
+    SpeedtestFinished {
+        group: String,
+    },
     #[cfg(target_os = "linux")]
     ThemeChanged {
         theme: tauri::Theme,
@@ -428,6 +435,21 @@ fn sample_frontend_events(uid: &String) -> Vec<(FrontendEvent<'_>, &'static str,
             "profile-update-completed",
             json!({"uid": "profile"}),
         ),
+        (
+            FrontendEvent::SpeedtestStarted {
+                group: String::from("group"),
+                members: vec![String::from("node")],
+            },
+            "verge://speedtest-started",
+            json!({"group": "group", "members": ["node"]}),
+        ),
+        (
+            FrontendEvent::SpeedtestFinished {
+                group: String::from("group"),
+            },
+            "verge://speedtest-finished",
+            json!({"group": "group"}),
+        ),
     ]
 }
 
@@ -463,9 +485,22 @@ frontend_events! {
     profile_completed: ProfileUpdatePayload = "profile-update-completed", FrontendEvent::ProfileUpdateCompleted { uid } => ProfileUpdatePayload { uid: uid.to_string() };
     run_state: crate::core::runstate::RunStateView = "verge://run-state-changed", FrontendEvent::RunStateChanged { state } => state;
     pending_failures: () = "verge://pending-failures-changed", FrontendEvent::PendingFailuresChanged => ();
+    speedtest_started: SpeedtestStartedPayload = "verge://speedtest-started", FrontendEvent::SpeedtestStarted { group, members } => SpeedtestStartedPayload { group: group.to_string(), members: members.iter().map(ToString::to_string).collect() };
+    speedtest_finished: SpeedtestFinishedPayload = "verge://speedtest-finished", FrontendEvent::SpeedtestFinished { group } => SpeedtestFinishedPayload { group: group.to_string() };
 }
 
 #[derive(serde::Serialize, specta::Type)]
 pub struct ProfileUpdatePayload {
     pub uid: std::string::String,
+}
+
+#[derive(serde::Serialize, specta::Type)]
+pub struct SpeedtestStartedPayload {
+    pub group: std::string::String,
+    pub members: Vec<std::string::String>,
+}
+
+#[derive(serde::Serialize, specta::Type)]
+pub struct SpeedtestFinishedPayload {
+    pub group: std::string::String,
 }

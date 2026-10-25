@@ -62,6 +62,10 @@ async fn select_fastest() {
         return;
     }
 
+    let members = group.all.clone().unwrap_or_default();
+    handle::Handle::notify_speedtest_started(&group_name, &members);
+    let _finish = SpeedtestFinishGuard(&group_name);
+
     let previous = group.now.clone();
     // Selector groups report an empty test_url, which mihomo treats as "test nothing".
     let test_url = group
@@ -156,5 +160,14 @@ async fn restore_selection(group_name: &str, previous: Option<&str>) {
             Type::ProxyMode,
             "speedtest: failed to restore {previous} in {group_name}: {err:#}"
         );
+    }
+}
+
+/// Reports the end of a run on every exit path, including early failures.
+struct SpeedtestFinishGuard<'a>(&'a str);
+
+impl Drop for SpeedtestFinishGuard<'_> {
+    fn drop(&mut self) {
+        handle::Handle::notify_speedtest_finished(self.0);
     }
 }

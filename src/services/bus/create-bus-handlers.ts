@@ -1,4 +1,5 @@
 import type { VergeEventPayloads } from '@/services/contract'
+import delayManager from '@/services/delay'
 import { forgetShownStartupError } from '@/services/notice-handlers'
 import type { AppStoreAction } from '@/store/app-state'
 
@@ -91,6 +92,13 @@ export const createEventBus = (deps: BusHandlerDeps) => {
       if (payload.mode !== 'NotRunning') forgetShownStartupError()
     },
     'verge://pending-failures-changed': () => deps.readPendingFailures(),
+    'verge://speedtest-started': ({ group, members }) => {
+      delayManager.beginExternalTest(group, members)
+    },
+    'verge://speedtest-finished': ({ group }) => {
+      delayManager.endExternalTest(group)
+      deps.revalidateKeys(['getProxyView'])
+    },
     [TEST_ALL_EVENT]: () => deps.dispatch({ type: 'testAll/requested' }),
   }
 

@@ -984,6 +984,15 @@ export type SidecarFailureSnapshot = {
   detail: string | null
 }
 
+export type SpeedtestFinishedPayload = {
+  group: string
+}
+
+export type SpeedtestStartedPayload = {
+  group: string
+  members: string[]
+}
+
 export type SystemInfo = {
   system_name: string
   system_version: string
@@ -1038,6 +1047,8 @@ export type VergeEventPayloads = {
   'profile-update-completed': ProfileUpdatePayload
   'verge://run-state-changed': RunStateView
   'verge://pending-failures-changed': null
+  'verge://speedtest-started': SpeedtestStartedPayload
+  'verge://speedtest-finished': SpeedtestFinishedPayload
 }
 
 export type WebDavFile = {

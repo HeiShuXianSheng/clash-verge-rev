@@ -43,6 +43,7 @@ class DelayManager {
   >()
   // Suppress sort notifications until every measurement in a group batch settles.
   private activeBatches = new Map<string, number>()
+  private externalTestMembers = new Map<string, string[]>()
 
   private pendingItemUpdates = new Map<string, DelayUpdate[]>()
   private pendingGroupUpdates = new Set<string>()
@@ -405,6 +406,30 @@ class DelayManager {
     debugLog(
       `[DelayManager] 批量测试延迟完成，组: ${group}, 总耗时: ${totalTime}ms`,
     )
+  }
+
+  /** Reflects a backend-driven group test as the same "testing" state a manual run shows. */
+  beginExternalTest(group: string, members: readonly string[]) {
+    this.externalTestMembers.set(group, [...members])
+    this.activeBatches.set(group, (this.activeBatches.get(group) ?? 0) + 1)
+    members.forEach((name) => this.setDelay(name, group, -2))
+  }
+
+  endExternalTest(group: string) {
+    const members = this.externalTestMembers.get(group) ?? []
+    this.externalTestMembers.delete(group)
+    // -1 falls back to the core history the backend run just refreshed.
+    members.forEach((name) => {
+      const key = hashKey(name, group)
+      if (this.cache.get(key)?.delay === -2) this.setDelay(name, group, -1)
+    })
+    const remaining = (this.activeBatches.get(group) ?? 1) - 1
+    if (remaining > 0) {
+      this.activeBatches.set(group, remaining)
+    } else {
+      this.activeBatches.delete(group)
+      this.queueGroupNotification(group)
+    }
   }
 
   formatDelay(delay: number, timeout = DEFAULT_DELAY_TIMEOUT) {

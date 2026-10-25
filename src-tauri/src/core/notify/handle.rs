@@ -80,6 +80,18 @@ impl Handle {
         });
     }
 
+    /// Drives the proxy page's "testing" state while a hotkey-triggered group test runs.
+    pub fn notify_speedtest_started(group: &str, members: &[std::string::String]) {
+        Self::send_event(FrontendEvent::SpeedtestStarted {
+            group: group.into(),
+            members: members.iter().map(|name| String::from(name.as_str())).collect(),
+        });
+    }
+
+    pub fn notify_speedtest_finished(group: &str) {
+        Self::send_event(FrontendEvent::SpeedtestFinished { group: group.into() });
+    }
+
     pub fn set_is_exiting(&self) {
         self.is_exiting.store(true, Ordering::Release);
     }
