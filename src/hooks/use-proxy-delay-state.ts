@@ -55,7 +55,9 @@ export function useProxyDelayState(
       return
     }
     const cachedUpdate = delayManager.getDelayUpdate(name, groupName)
-    if (cachedUpdate) {
+    // -1 is the marker an external group test leaves behind; only the core history
+    // below carries the measurements that run produced.
+    if (cachedUpdate && cachedUpdate.delay !== -1) {
       setDelayState({ ...cachedUpdate })
       return
     }
